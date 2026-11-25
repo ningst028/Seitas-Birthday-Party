@@ -704,7 +704,7 @@
     }
   }
 // 自訂分享文案與指定 Hashtag
-const SHARE_TEXT = " #セイタの誕生日パーティ大作戦 #세이타의생일파티대작전";
+const SHARE_TEXT = "˚₊‧꒰ა Happy 20th Seita Day ໒꒱‧₊˚💜🦌 #セイタの誕生日パーティ大作戦 #세이타의생일파티대작전";
 const CELEBRATE_IMG_URL = "birthday.png"; 
 
 // 1. 分享至 X (Twitter)
@@ -714,7 +714,7 @@ async function shareToX() {
     try {
       const response = await fetch(CELEBRATE_IMG_URL);
       const blob = await response.blob();
-      const file = new File([blob], "Happy_Birthday_Seita.png", { type: blob.type });
+      const file = new File([blob], "Happy_20_Seita_Day.png", { type: blob.type });
 
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -748,10 +748,10 @@ async function shareToXiaohongshu() {
     try {
       const response = await fetch(CELEBRATE_IMG_URL);
       const blob = await response.blob();
-      const file = new File([blob], "Happy_Birthday_Seita.png", { type: blob.type });
+      const file = new File([blob], "Happy_20_Seita_Day.png", { type: blob.type });
 
       if (navigator.canShare({ files: [file] })) {
-        alert("文案已複製到剪貼簿");
+        alert("Copied");
         await navigator.share({
           text: SHARE_TEXT,
           files: [file]
