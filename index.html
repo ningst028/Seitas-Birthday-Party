@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>セイタの誕生日パーティ大作戦・세이타의 생일 파티 대작전</title>
+  <style>
+    :root {
+      --primary-lavender: #c8b6ff;
+      --deep-lavender: #7251b5;
+      --bg-dark: #1e1b2e;
+      --accent-pink: #ffc6ff;
+      --gold: #ffd166;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100dvh;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      max-width: 450px;
+      max-height: 900px;
+      background: #f7f2ff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(114, 81, 181, 0.4);
+    }
+
+    /* 遊戲開始頁面遮罩 */
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('./start_bg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 25px;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    /* 隱藏時的淡出狀態 */
+    #start-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .start-content {
+      background: transparent;
+    }
+
+    #start-btn {
+      position: absolute;
+      top: 70%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 36px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      background: linear-gradient(90deg, #9d4edd, #7251b5);
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(157, 78, 221, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #start-btn:active {
+      transform: translateX(-50%) scale(0.94);
+      box-shadow: 0 2px 8px rgba(157, 78, 221, 0.3);
+    }
+
+    /* 開始與結尾頁面底部署名 */
+    .screen-footer {
+      position: absolute;
+      bottom: 14px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 300;
+      letter-spacing: 0.6px;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 4px rgba(30, 27, 46, 0.65);
+      pointer-events: none;
+      z-index: 5;
+    }
+    
+    /* Header & Progress Bar */
+    header {
+      padding: 14px 15px;
+      background: linear-gradient(135deg, #e6e6fa 0%, #d8bbff 100%);
+      text-align: center;
+      border-bottom: 2px solid var(--primary-lavender);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 14px;
+      color: var(--deep-lavender);
+      margin-bottom: 4px;
+      font-weight: 800;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 10px;
+      font-weight: 700;
+      color: #4a3e6d;
+    }
+
+    .progress-track {
+      width: 100px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--primary-lavender);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #b820e6, #7251b5);
+      transition: width 0.3s ease;
+    }
+
+    /* 視窗區域：隱藏超出部分 */
+    #room-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      background: #f0e6ff;
+    }
+    #room-viewport:active {
+      cursor: grabbing;
+    }
+
+    /* 房間場景：由背景圖等比撐開高度與寬度，確保所有比例手機座標完全一致 */
+    #room-scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: max-content;
+      transform: translateX(0px);
+      transition: transform 0.05s ease-out;
+      will-change: transform;
+    }
+
+    #room-bg {
+      display: block;
+      height: 100%;
+      width: auto;
+      max-width: none;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* 中間區域：房門（百分比與中心點定位） */
+    #door {
+      position: absolute;
+      left: 58.01%;
+      top: 42.19%;
+      width: 12.61%;
+      height: 54.38%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    /* 集齊物品（開門狀態）後的獨立尺寸與位置 */
+    #door.ready {
+      left: 58.32%;
+      top: 41.84%;
+      width: 13.87%;
+      height: 55.68%;
+      transform: translate(-50%, -50%);
+    }
+
+    .door-style {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      transition: transform 0.3s ease;
+    }
+
+    /* 互動物品：全部以中心點與場景寬高百分比鎖定位置 */
+    .interactive-item {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    .interactive-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* 各道具精準百分比座標（相對於 1586 x 772.3 基準比例換算） */
+    #item-burger {
+      left: 11.57%;
+      top: 77.95%;
+      width: 5.49%;
+    }
+    #item-letter {
+      left: 16.64%;
+      top: 27.83%;
+      width: 8.93%;
+    }
+    #item-controller {
+      left: 42.56%;
+      top: 96.26%;
+      width: 8.20%;
+    }
+    #item-puppy {
+      left: 68.88%;
+      top: 93.01%;
+      width: 7.88%;
+    }
+    #item-lightstick {
+      left: 74.64%;
+      top: 33.61%;
+      width: 4.26%;
+    }
+    #item-seidee {
+      left: 88.07%;
+      top: 75.24%;
+      width: 12.21%;
+    }
+    #item-poster {
+      left: 92.86%;
+      top: 26.10%;
+      width: 12.71%;
+    }
+
+    /* 提示滑動的小標籤 */
+    #swipe-hint {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: #8c78b5;
+      pointer-events: none;
+      z-index: 5;
+      background: rgba(255,255,255,0.6);
+      padding: 2px 0;
+    }
+
+    /* 物品欄 */
+    #inventory {
+      height: 65px;
+      background: #ffffff;
+      border-top: 2.5px solid var(--primary-lavender);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .slot {
+      width: 44px;
+      height: 44px;
+      border: 2px dashed #c8b6ff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #faf7ff;
+      opacity: 0.4;
+      transition: all 0.3s;
+    }
+
+    .slot-img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .slot.collected {
+      opacity: 1;
+      border: 2px solid var(--deep-lavender);
+      background: #f0e6ff;
+      box-shadow: 0 2px 8px rgba(114, 81, 181, 0.25);
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* 結尾慶生彈窗背景遮罩 */
+    #ending-modal {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(30, 27, 46, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 20px 42px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .ending-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f7f0ff 100%);
+      border: 3px solid var(--primary-lavender);
+      border-radius: 24px;
+      padding: 20px 18px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 12px 35px rgba(114, 81, 181, 0.45);
+    }
+
+    .ending-header {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--deep-lavender);
+      margin-bottom: 12px;
+    }
+
+    /* 慶生圖片容器 */
+    .celebrate-img-box {
+      width: 100%;
+      min-height: 180px;
+      max-height: 45vh;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #e6d7ff;
+      background: #faf7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .celebrate-img-box img {
+      width: 100%;
+      height: auto;
+      max-height: 45vh;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* 按鈕排版與樣式 */
+    .ending-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .ending-actions button {
+      width: 100%;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .ending-actions button:active {
+      transform: scale(0.96);
+    }
+
+    .btn-share-x {
+      background: #14171a;
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(20, 23, 26, 0.25);
+    }
+
+    .btn-share-xhs {
+      background: #ff2442;
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(255, 36, 66, 0.3);
+    }
+
+    .btn-replay {
+      background: linear-gradient(90deg, #b88cff, #7251b5);
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pop {
+      0% { transform: scale(0.3); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <!-- 遊戲開始頁面 -->
+  <div id="start-screen">
+    <div class="start-content">
+      <button id="start-btn" onclick="startGame()">START</button>
+    </div>
+    <footer class="screen-footer">@ning_st028</footer>
+  </div>
+
+  <header>
+    <h1>セイタの誕生日パーティに必要なアイテムを探しましょう！</h1>
+    <div class="status-bar">
+      <div class="status" id="status-text">アイテム: 0 / 7</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 房間視窗 (支援滑動) -->
+  <div id="room-viewport">
+    <div id="room-scene">
+      <!-- 背景圖直接撐開場景真實比例 -->
+      <img id="room-bg" src="./bg_room.jpg" alt="Room Background" draggable="false">
+
+      <!-- 房門點擊熱區與圖片容器 -->
+      <div id="door" onclick="tryOpenDoor()" title="door">
+        <img id="door-img" src="./door_closed.png" alt="door" class="door-style">
+      </div>
+      
+      <!-- 7 樣散落各處的尋寶物品 -->
+      <div class="interactive-item" id="item-burger" onclick="collectItem('burger', this, event)" title="burger">
+        <img src="./burger.png" alt="Hamburger">
+      </div>
+      
+      <div class="interactive-item" id="item-letter" onclick="collectItem('letter', this, event)" title="letter">
+        <img src="./letter.png" alt="Letter">
+      </div>
+      
+      <div class="interactive-item" id="item-controller" onclick="collectItem('controller', this, event)" title="controller">
+        <img src="./controller.png" alt="GameController">
+      </div>
+      
+      <div class="interactive-item" id="item-puppy" onclick="collectItem('puppy', this, event)" title="puppy">
+        <img src="./puppy.png" alt="Puppy">
+      </div>
+      
+      <div class="interactive-item" id="item-lightstick" onclick="collectItem('lightstick', this, event)" title="lightstick">
+        <img src="./lightstick.png" alt="Lightstick">
+      </div>
+      
+      <div class="interactive-item" id="item-seidee" onclick="collectItem('seidee', this, event)" title="seidee">
+        <img src="./seidee.png" alt="Seidee">
+      </div>
+      
+      <div class="interactive-item" id="item-poster" onclick="collectItem('poster', this, event)" title="poster">
+        <img src="./poster.png" alt="Poster">
+      </div>
+    </div>
+    <div id="swipe-hint">👈 左右にスワイプして移動する 👉</div>
+  </div>
+  
+  <!-- 底部物品欄 (7個格子) -->
+  <footer id="inventory">
+    <div class="slot" id="slot-burger">
+      <img src="./burger_gray.png" alt="未找到漢堡" class="slot-img">
+    </div>
+    <div class="slot" id="slot-letter">
+      <img src="./letter_gray.png" alt="未找到信件" class="slot-img">
+    </div>
+    <div class="slot" id="slot-controller">
+      <img src="./controller_gray.png" alt="未找到手掣" class="slot-img">
+    </div>
+    <div class="slot" id="slot-puppy">
+      <img src="./puppy_gray.png" alt="未找到小狗" class="slot-img">
+    </div>
+    <div class="slot" id="slot-lightstick">
+      <img src="./lightstick_gray.png" alt="未找到應援棒" class="slot-img">
+    </div>
+    <div class="slot" id="slot-seidee">
+      <img src="./seidee_gray.png" alt="未找到抱枕" class="slot-img">
+    </div>
+    <div class="slot" id="slot-poster">
+      <img src="./poster_gray.png" alt="未找到海報" class="slot-img">
+    </div>
+  </footer>
+
+  <!-- 結尾慶生彈窗 -->
+  <div id="ending-modal">
+    <div class="ending-card">
+      <div class="ending-header">セイタお誕生日おめでとう🎂</div>
+      
+      <!-- 準備好的慶生圖片 -->
+      <div class="celebrate-img-box">
+        <img id="celebrate-img" src="./Happy_20_Seita_Day.png" alt="Happy Birthday Seita">
+      </div>    
+
+      <!-- 按鈕區 -->
+      <div class="ending-actions">
+        <button class="btn-share-x" onclick="shareToX()">
+          Share to X (Twitter)
+        </button>
+        <button class="btn-share-xhs" onclick="shareToXiaohongshu()">
+          Share to Xiaohongshu (Rednote)
+        </button>
+        <button class="btn-replay" onclick="location.reload()">
+          Play Again
+        </button>
+      </div>
+    </div>
+    <footer class="screen-footer">@ning_st028</footer>
+  </div>
+</div>
+
+<script>
+  function startGame() {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    playSound('pop');
+
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) {
+      startScreen.classList.add('hidden');
+    }
+  }
+  
+  const totalItems = 7;
+  let collectedCount = 0;
+  const collectedSet = new Set();
+
+  // ---------------- 左右滑動 / 拖曳控制邏輯 ----------------
+  const viewport = document.getElementById('room-viewport');
+  const scene = document.getElementById('room-scene');
+  
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let hasMoved = false;
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function updateSceneBounds() {
+    const limitWidth = Math.max(0, scene.offsetWidth - viewport.offsetWidth);
+    currentX = clamp(currentX, -limitWidth, 0);
+    scene.style.transform = `translateX(${currentX}px)`;
+  }
+
+  window.addEventListener('resize', updateSceneBounds);
+
+  function dragStart(e) {
+    isDragging = true;
+    hasMoved = false;
+    startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+  }
+
+  function dragMove(e) {
+    if (!isDragging) return;
+    const x = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    const y = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+    
+    if (Math.abs(x - startX) > 4 || Math.abs(y - startY) > 4) {
+      hasMoved = true;
+    }
+
+    const diff = x - startX;
+    startX = x;
+    
+    currentX += diff;
+    const limitWidth = Math.max(0, scene.offsetWidth - viewport.offsetWidth);
+    currentX = clamp(currentX, -limitWidth, 0);
+
+    scene.style.transform = `translateX(${currentX}px)`;
+  }
+
+  function dragEnd() {
+    isDragging = false;
+  }
+
+  viewport.addEventListener('mousedown', dragStart);
+  window.addEventListener('mousemove', dragMove);
+  window.addEventListener('mouseup', dragEnd);
+
+  viewport.addEventListener('touchstart', dragStart, { passive: true });
+  window.addEventListener('touchmove', dragMove, { passive: true });
+  window.addEventListener('touchend', dragEnd);
+
+  // ---------------- 遊戲核心互動邏輯 ----------------
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'collect') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.08);
+      osc.frequency.setValueAtTime(783.99, now + 0.16);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    }
+  }
+
+  function collectItem(id, element, event) {
+    if (collectedSet.has(id)) return;
+    if (hasMoved) return;
+
+    playSound('collect');
+    if (event && typeof createParticles === 'function') {
+      createParticles(event.clientX, event.clientY);
+    }
+
+    collectedSet.add(id);
+    collectedCount++;
+
+    if (element) {
+      element.style.display = 'none';
+    }
+
+    const slot = document.getElementById(`slot-${id}`);
+    if (slot) {
+      slot.classList.add('collected');
+      slot.innerHTML = `<img src="./${id}.png" alt="${id}" class="slot-img">`;
+    }
+
+    const statusText = document.getElementById('status-text');
+    const progressFill = document.getElementById('progress-fill');
+
+    if (statusText) {
+      statusText.innerText = `アイテム: ${collectedCount} / ${totalItems}`;
+    }
+    if (progressFill) {
+      progressFill.style.width = `${(collectedCount / totalItems) * 100}%`;
+    }
+
+    if (collectedCount === totalItems) {
+      if (statusText) {
+        statusText.innerText = "すべてのアイテムが揃いました！ドアを開けてみよう！";
+      }
+      
+      const doorHotspot = document.getElementById('door');
+      const doorImg = document.getElementById('door-img');
+      
+      if (doorHotspot) {
+        doorHotspot.classList.add('ready');
+      }
+      if (doorImg) {
+        doorImg.src = './door_open.png';
+      }
+    }
+  }
+
+  function tryOpenDoor() {
+    if (collectedCount < totalItems) {
+      playSound('pop');
+      alert(`必要アイテムが足りません！`);
+    } else {
+      playSound('collect');
+      const modal = document.getElementById('ending-modal');
+      const celebrateImg = document.getElementById('celebrate-img');
+      if (celebrateImg) {
+        celebrateImg.src = './Happy_20_Seita_Day.png';
+      }
+      modal.style.display = 'flex';
+    }
+  }
+
+  // 自訂分享文案與指定 Hashtag
+  const SHARE_TEXT = " #セイタの誕生日パーティ大作戦 #세이타의생일파티대작전";
+  const CELEBRATE_IMG_URL = "./Happy_20_Seita_Day.png";
+
+  // 1. 分享至 X (Twitter)
+  async function shareToX() {
+    if (navigator.canShare && navigator.share) {
+      try {
+        const response = await fetch(CELEBRATE_IMG_URL);
+        const blob = await response.blob();
+        const file = new File([blob], "Happy_20_Seita_Day.png", { type: blob.type });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            text: SHARE_TEXT,
+            files: [file]
+          });
+          return;
+        }
+      } catch (err) {
+        console.log("原生帶圖分享取消或略過，切換至網頁版 X 分享");
+      }
+    }
+
+    const pageUrl = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(SHARE_TEXT);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${pageUrl}`, "_blank");
+  }
+
+  // 2. 分享至小紅書
+  async function shareToXiaohongshu() {
+    try {
+      await navigator.clipboard.writeText(SHARE_TEXT);
+    } catch (e) {
+      console.warn("剪貼簿複製受限");
+    }
+
+    if (navigator.canShare && navigator.share) {
+      try {
+        const response = await fetch(CELEBRATE_IMG_URL);
+        const blob = await response.blob();
+        const file = new File([blob], "Happy_20_Seita_Day.png", { type: blob.type });
+
+        if (navigator.canShare({ files: [file] })) {
+          alert("Copied");
+          await navigator.share({
+            text: SHARE_TEXT,
+            files: [file]
+          });
+          return;
+        }
+      } catch (err) {
+        console.log("系統分享面板已關閉");
+      }
+    }
+
+    const link = document.createElement("a");
+    link.href = CELEBRATE_IMG_URL;
+    link.download = "Happy_20_Seita_Day.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    alert("文案已複製到剪貼簿");
+  }
+</script>
+
+</body>
+</html>
